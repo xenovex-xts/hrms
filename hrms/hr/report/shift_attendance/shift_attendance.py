@@ -9,6 +9,7 @@ from frappe.query_builder import Criterion
 from frappe.utils import cint, flt, format_datetime, format_duration
 
 from erpnext.accounts.utils import build_qb_match_conditions
+from frappe.query_builder.functions import Max
 
 
 def execute(filters=None):
@@ -222,16 +223,41 @@ def get_attendance_with_checkins(filters):
 		get_base_attendance_query(filters)
 		.inner_join(checkin)
 		.on(checkin.attendance == attendance.name)
+		# .select(
+		# 	checkin.shift_start,
+		# 	checkin.shift_end,
+		# 	checkin.shift_actual_start,
+		# 	checkin.shift_actual_end,
+		# 	shift_type.enable_late_entry_marking,
+		# 	shift_type.late_entry_grace_period,
+		# 	shift_type.enable_early_exit_marking,
+		# 	shift_type.early_exit_grace_period,
+		# )
 		.select(
-			checkin.shift_start,
-			checkin.shift_end,
-			checkin.shift_actual_start,
-			checkin.shift_actual_end,
-			shift_type.enable_late_entry_marking,
-			shift_type.late_entry_grace_period,
-			shift_type.enable_early_exit_marking,
-			shift_type.early_exit_grace_period,
+				Max(checkin.shift_start).as_("shift_start"),
+				Max(checkin.shift_end).as_("shift_end"),
+				Max(checkin.shift_actual_start).as_("shift_actual_start"),
+				Max(checkin.shift_actual_end).as_("shift_actual_end"),
+				Max(shift_type.enable_late_entry_marking).as_("enable_late_entry_marking"),
+				Max(shift_type.late_entry_grace_period).as_("late_entry_grace_period"),
+				Max(shift_type.enable_early_exit_marking).as_("enable_early_exit_marking"),
+				Max(shift_type.early_exit_grace_period).as_("early_exit_grace_period"),
 		)
+		.groupby(
+				attendance.name,
+				attendance.employee,
+				attendance.employee_name,
+				attendance.shift,
+				attendance.attendance_date,
+				attendance.status,
+				attendance.in_time,
+				attendance.out_time,
+				attendance.working_hours,
+				attendance.late_entry,
+				attendance.early_exit,
+				attendance.department,
+				attendance.company,
+		)		
 	)
 	for field in filters:
 		if field == "late_entry" and not filters.consider_grace_period:
@@ -266,7 +292,22 @@ def get_base_attendance_query(filters):
 			attendance.company,
 		)
 		.where(attendance.docstatus == 1)
-		.groupby(attendance.name)
+		# .groupby(attendance.name)
+		.groupby(
+			attendance.name,
+			attendance.employee,
+			attendance.employee_name,
+			attendance.shift,
+			attendance.attendance_date,
+			attendance.status,
+			attendance.in_time,
+			attendance.out_time,
+			attendance.working_hours,
+			attendance.late_entry,
+			attendance.early_exit,
+			attendance.department,
+			attendance.company,
+		)
 	)
 
 	for field in filters:
@@ -293,6 +334,7 @@ def get_attendance_without_checkins(filters):
 		.on(checkin.attendance == attendance.name)
 		.where(checkin.attendance.isnull())
 	)
+	frappe.errprint(query.get_sql())
 	result = query.run(as_dict=True)
 	return result
 

@@ -186,17 +186,32 @@ class LeaveAllocation(Document):
 			)
 
 	def validate_allocation_overlap(self):
-		leave_allocation = frappe.db.sql(
-			"""
-			SELECT
-				name
-			FROM `tabLeave Allocation`
-			WHERE
-				employee=%s AND leave_type=%s
-				AND name <> %s AND docstatus=1
-				AND to_date >= %s AND from_date <= %s""",
-			(self.employee, self.leave_type, self.name, self.from_date, self.to_date),
-		)
+		# leave_allocation = frappe.db.sql(
+		# 	"""
+		# 	SELECT
+		# 		name
+		# 	FROM `tabLeave Allocation`
+		# 	WHERE
+		# 		employee=%s AND leave_type=%s
+		# 		AND name <> %s AND docstatus=1
+		# 		AND to_date >= %s AND from_date <= %s""",
+		# 	(self.employee, self.leave_type, self.name, self.from_date, self.to_date),
+		# )
+
+		Allocation = frappe.qb.DocType("Leave Allocation")
+
+		leave_allocation = (
+			frappe.qb.from_(Allocation)
+			.select(Allocation.name)
+			.where(
+				(Allocation.employee == self.employee)
+				& (Allocation.leave_type == self.leave_type)
+				& (Allocation.name != self.name)
+				& (Allocation.docstatus == 1)
+				& (Allocation.to_date >= self.from_date)
+				& (Allocation.from_date <= self.to_date)
+			)
+		).run()
 
 		if leave_allocation:
 			frappe.msgprint(
@@ -212,13 +227,30 @@ class LeaveAllocation(Document):
 			)
 
 	def validate_back_dated_allocation(self):
-		future_allocation = frappe.db.sql(
-			"""select name, from_date from `tabLeave Allocation`
-			where employee=%s and leave_type=%s and docstatus=1 and from_date > %s
-			and carry_forward=1""",
-			(self.employee, self.leave_type, self.to_date),
-			as_dict=1,
-		)
+		# future_allocation = frappe.db.sql(
+		# 	"""select name, from_date from `tabLeave Allocation`
+		# 	where employee=%s and leave_type=%s and docstatus=1 and from_date > %s
+		# 	and carry_forward=1""",
+		# 	(self.employee, self.leave_type, self.to_date),
+		# 	as_dict=1,
+		# )
+
+		Allocation = frappe.qb.DocType("Leave Allocation")
+
+		future_allocation = (
+			frappe.qb.from_(Allocation)
+			.select(
+				Allocation.name,
+				Allocation.from_date,
+			)
+			.where(
+				(Allocation.employee == self.employee)
+				& (Allocation.leave_type == self.leave_type)
+				& (Allocation.docstatus == 1)
+				& (Allocation.from_date > self.to_date)
+				& (Allocation.carry_forward == 1)
+			)
+		).run(as_dict=True)
 
 		if future_allocation:
 			frappe.throw(

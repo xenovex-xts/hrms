@@ -242,13 +242,30 @@ class LeaveApplication(Document, PWANotificationsMixin):
 		return allocation_based_on_from_date, allocation_based_on_to_date
 
 	def validate_back_dated_application(self):
-		future_allocation = frappe.db.sql(
-			"""select name, from_date from `tabLeave Allocation`
-			where employee=%s and leave_type=%s and docstatus=1 and from_date > %s
-			and carry_forward=1""",
-			(self.employee, self.leave_type, self.to_date),
-			as_dict=1,
-		)
+		# future_allocation = frappe.db.sql(
+		# 	"""select name, from_date from `tabLeave Allocation`
+		# 	where employee=%s and leave_type=%s and docstatus=1 and from_date > %s
+		# 	and carry_forward=1""",
+		# 	(self.employee, self.leave_type, self.to_date),
+		# 	as_dict=1,
+		# )
+
+		Allocation = frappe.qb.DocType("Leave Allocation")
+
+		future_allocation = (
+			frappe.qb.from_(Allocation)
+			.select(
+				Allocation.name,
+				Allocation.from_date,
+			)
+			.where(
+				(Allocation.employee == self.employee)
+				& (Allocation.leave_type == self.leave_type)
+				& (Allocation.docstatus == 1)
+				& (Allocation.from_date > self.to_date)
+				& (Allocation.carry_forward == 1)
+			)
+		).run(as_dict=True)
 
 		if future_allocation:
 			frappe.throw(
@@ -1285,10 +1302,11 @@ def get_holidays(employee: str, from_date: str | datetime.date, to_date: str | d
 	return len(holidays)
 
 
+# def is_lwp(leave_type):
+# 	lwp = frappe.db.sql("select is_lwp from `tabLeave Type` where name = %s", leave_type)
+# 	return lwp and cint(lwp[0][0]) or 0
 def is_lwp(leave_type):
-	lwp = frappe.db.sql("select is_lwp from `tabLeave Type` where name = %s", leave_type)
-	return lwp and cint(lwp[0][0]) or 0
-
+	return cint(frappe.db.get_value("Leave Type", leave_type, "is_lwp"))
 
 @frappe.whitelist()
 def get_events(start: str, end: str, filters: str | None = None) -> list[dict]:

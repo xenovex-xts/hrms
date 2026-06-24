@@ -356,14 +356,29 @@ class ShiftType(Document):
 		"""Get all such employees who either have this shift assigned that hasn't ended or have this shift as default shift.
 		This may fetch some redundant employees who have another shift assigned that may have started or ended before or after the
 		attendance processing date. But this is done to avoid missing any employee who may have this shift as active shift."""
-		filters = {"shift_type": self.name, "docstatus": "1", "status": "Active"}
+		# filters = {"shift_type": self.name, "docstatus": "1", "status": "Active"}
 
-		or_filters = [["end_date", ">=", from_date], ["end_date", "is", "not set"]]
+		# or_filters = [["end_date", ">=", from_date], ["end_date", "is", "not set"]]
 
-		assigned_employees = frappe.get_all(
-			"Shift Assignment", filters=filters, or_filters=or_filters, pluck="employee"
-		)
+		# assigned_employees = frappe.get_all(
+		# 	"Shift Assignment", filters=filters, or_filters=or_filters, pluck="employee"
+		# )
+		ShiftAssignment = frappe.qb.DocType("Shift Assignment")
 
+		assigned_employees = (
+			frappe.qb.from_(ShiftAssignment)
+			.select(ShiftAssignment.employee)
+			.where(
+				(ShiftAssignment.shift_type == self.name)
+				& (ShiftAssignment.docstatus == 1)
+				& (ShiftAssignment.status == "Active")
+				& (
+					(ShiftAssignment.end_date >= from_date)
+					| (ShiftAssignment.end_date.isnull())
+				)
+			)
+		).run(pluck=True)
+		
 		if consider_default_shift:
 			default_shift_employees = frappe.get_all(
 				"Employee", filters={"default_shift": self.name, "status": "Active"}, pluck="name"

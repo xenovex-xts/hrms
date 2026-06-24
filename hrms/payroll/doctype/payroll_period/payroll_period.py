@@ -55,21 +55,65 @@ class PayrollPeriod(Document):
 			frappe.throw(msg)
 
 
+# def get_payroll_period_days(start_date, end_date, employee, company=None):
+# 	if not company:
+# 		company = frappe.db.get_value("Employee", employee, "company")
+# 	payroll_period = frappe.db.sql(
+# 		"""
+# 		select name, start_date, end_date
+# 		from `tabPayroll Period`
+# 		where
+# 			company=%(company)s
+# 			and %(start_date)s between start_date and end_date
+# 			and %(end_date)s between start_date and end_date
+# 	""",
+# 		{"company": company, "start_date": start_date, "end_date": end_date},
+# 	)
 def get_payroll_period_days(start_date, end_date, employee, company=None):
 	if not company:
 		company = frappe.db.get_value("Employee", employee, "company")
-	payroll_period = frappe.db.sql(
-		"""
-		select name, start_date, end_date
-		from `tabPayroll Period`
-		where
-			company=%(company)s
-			and %(start_date)s between start_date and end_date
-			and %(end_date)s between start_date and end_date
-	""",
-		{"company": company, "start_date": start_date, "end_date": end_date},
-	)
 
+	PayrollPeriod = frappe.qb.DocType("Payroll Period")
+
+	payroll_period = (
+		frappe.qb.from_(PayrollPeriod)
+		.select(
+			PayrollPeriod.name,
+			PayrollPeriod.start_date,
+			PayrollPeriod.end_date,
+		)
+		.where(
+			(PayrollPeriod.company == company)
+			& (PayrollPeriod.start_date <= start_date)
+			& (PayrollPeriod.end_date >= start_date)
+			& (PayrollPeriod.start_date <= end_date)
+			& (PayrollPeriod.end_date >= end_date)
+		)
+	).run()
+
+	if payroll_period:
+		actual_no_of_days = (
+			date_diff(getdate(payroll_period[0][2]), getdate(payroll_period[0][1])) + 1
+		)
+		working_days = actual_no_of_days
+
+		if not cint(
+			frappe.db.get_single_value(
+				"Payroll Settings",
+				"include_holidays_in_total_working_days",
+			)
+		):
+			holidays = get_holiday_dates_for_employee(
+				employee,
+				getdate(payroll_period[0][1]),
+				getdate(payroll_period[0][2]),
+			)
+			working_days -= len(holidays)
+
+		return payroll_period[0][0], working_days, actual_no_of_days
+
+	return False, False, False
+	
 	if len(payroll_period) > 0:
 		actual_no_of_days = date_diff(getdate(payroll_period[0][2]), getdate(payroll_period[0][1])) + 1
 		working_days = actual_no_of_days

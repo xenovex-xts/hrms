@@ -64,26 +64,53 @@ def update_job_applicant(status, job_applicant):
 
 
 def get_staffing_plan_detail(designation, company, offer_date):
+	# detail = frappe.db.sql(
+	# 	"""
+	# 	SELECT DISTINCT spd.parent,
+	# 		sp.from_date as from_date,
+	# 		sp.to_date as to_date,
+	# 		sp.name,
+	# 		sum(spd.vacancies) as vacancies,
+	# 		spd.designation
+	# 	FROM `tabStaffing Plan Detail` spd, `tabStaffing Plan` sp
+	# 	WHERE
+	# 		sp.docstatus=1
+	# 		AND spd.designation=%s
+	# 		AND sp.company=%s
+	# 		AND spd.parent = sp.name
+	# 		AND %s between sp.from_date and sp.to_date
+	# """,
+	# 	(designation, company, offer_date),
+	# 	as_dict=1,
+	# )
 	detail = frappe.db.sql(
 		"""
-		SELECT DISTINCT spd.parent,
-			sp.from_date as from_date,
-			sp.to_date as to_date,
+		SELECT
+			spd.parent,
+			sp.from_date,
+			sp.to_date,
 			sp.name,
-			sum(spd.vacancies) as vacancies,
+			SUM(spd.vacancies) AS vacancies,
 			spd.designation
-		FROM `tabStaffing Plan Detail` spd, `tabStaffing Plan` sp
+		FROM `tabStaffing Plan Detail` spd
+		INNER JOIN `tabStaffing Plan` sp
+			ON spd.parent = sp.name
 		WHERE
-			sp.docstatus=1
-			AND spd.designation=%s
-			AND sp.company=%s
-			AND spd.parent = sp.name
-			AND %s between sp.from_date and sp.to_date
-	""",
+			sp.docstatus = 1
+			AND spd.designation = %s
+			AND sp.company = %s
+			AND %s BETWEEN sp.from_date AND sp.to_date
+		GROUP BY
+			spd.parent,
+			sp.from_date,
+			sp.to_date,
+			sp.name,
+			spd.designation
+		""",
 		(designation, company, offer_date),
-		as_dict=1,
+		as_dict=True,
 	)
-
+	
 	return frappe._dict(detail[0]) if (detail and detail[0].parent) else None
 
 

@@ -5,7 +5,7 @@
 import frappe
 from frappe import _
 from frappe.utils import flt
-
+from frappe.query_builder.functions import Sum
 from erpnext.accounts.report.financial_statements import get_period_list
 
 
@@ -64,25 +64,59 @@ def get_vehicle_log_data(filters):
 	conditions, values = get_conditions(filters)
 
 	# nosemgrep: frappe-semgrep-rules.rules.frappe-using-db-sql
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			vhcl.license_plate as vehicle, vhcl.make, vhcl.model,
-			vhcl.location, log.name as log_name, log.odometer,
-			log.date, log.employee, log.fuel_qty,
-			log.price as fuel_price,
-			log.fuel_qty * log.price as fuel_expense
-		FROM
-			`tabVehicle` vhcl,`tabVehicle Log` log
-		WHERE
-			vhcl.license_plate = log.license_plate
-			and log.docstatus = 1
-			and date between %(start_date)s and %(end_date)s
-			{conditions}
-		ORDER BY date""",
-		values,
-		as_dict=1,
+	# data = frappe.db.sql(
+	# 	f"""
+	# 	SELECT
+	# 		vhcl.license_plate as vehicle, vhcl.make, vhcl.model,
+	# 		vhcl.location, log.name as log_name, log.odometer,
+	# 		log.date, log.employee, log.fuel_qty,
+	# 		log.price as fuel_price,
+	# 		log.fuel_qty * log.price as fuel_expense
+	# 	FROM
+	# 		`tabVehicle` vhcl,`tabVehicle Log` log
+	# 	WHERE
+	# 		vhcl.license_plate = log.license_plate
+	# 		and log.docstatus = 1
+	# 		and date between %(start_date)s and %(end_date)s
+	# 		{conditions}
+	# 	ORDER BY date""",
+	# 	values,
+	# 	as_dict=1,
+	# )
+
+	Vehicle = frappe.qb.DocType("Vehicle")
+	VehicleLog = frappe.qb.DocType("Vehicle Log")
+
+	query = (
+		frappe.qb.from_(Vehicle)
+		.inner_join(VehicleLog)
+		.on(Vehicle.license_plate == VehicleLog.license_plate)
+		.select(
+			Vehicle.license_plate.as_("vehicle"),
+			Vehicle.make,
+			Vehicle.model,
+			Vehicle.location,
+			VehicleLog.name.as_("log_name"),
+			VehicleLog.odometer,
+			VehicleLog.date,
+			VehicleLog.employee,
+			VehicleLog.fuel_qty,
+			VehicleLog.price.as_("fuel_price"),
+			(VehicleLog.fuel_qty * VehicleLog.price).as_("fuel_expense"),
+		)
+		.where(
+			(VehicleLog.docstatus == 1)
+			& (VehicleLog.date.between(start_date, end_date))
+		)
 	)
+
+	if filters.employee:
+		query = query.where(VehicleLog.employee == filters.employee)
+
+	if filters.vehicle:
+		query = query.where(Vehicle.license_plate == filters.vehicle)
+
+	data = query.orderby(VehicleLog.date).run(as_dict=True)	
 
 	for row in data:
 		row["service_expense"] = get_service_expense(row.log_name)
@@ -118,18 +152,28 @@ def get_period_dates(filters):
 
 
 def get_service_expense(logname):
-	expense_amount = frappe.db.sql(
-		"""
-		SELECT sum(expense_amount)
-		FROM
-			`tabVehicle Log` log, `tabVehicle Service` service
-		WHERE
-			service.parent=log.name and log.name=%s
-	""",
-		logname,
-	)
+	# expense_amount = frappe.db.sql(
+	# 	"""
+	# 	SELECT sum(expense_amount)
+	# 	FROM
+	# 		`tabVehicle Log` log, `tabVehicle Service` service
+	# 	WHERE
+	# 		service.parent=log.name and log.name=%s
+	# """,
+	# 	logname,
+	# )
 
-	return flt(expense_amount[0][0]) if expense_amount else 0.0
+	# return flt(expense_amount[0][0]) if expense_amount else 0.0
+
+	VehicleService = frappe.qb.DocType("Vehicle Service")
+
+	result = (
+		frappe.qb.from_(VehicleService)
+		.select(Sum(VehicleService.expense_amount))
+		.where(VehicleService.parent == logname)
+	).run()
+
+	return flt(result[0][0]) if result and result[0][0] else 0.0	
 
 
 def get_chart_data(data, filters):

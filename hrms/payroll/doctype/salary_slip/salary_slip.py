@@ -2129,6 +2129,20 @@ class SalarySlip(TransactionBase):
 
 		return total_exemption_amount
 
+	# def get_income_form_other_sources(self):
+	# 	return (
+	# 		frappe.get_all(
+	# 			"Employee Other Income",
+	# 			filters={
+	# 				"employee": self.employee,
+	# 				"payroll_period": self.payroll_period.name,
+	# 				"company": self.company,
+	# 				"docstatus": 1,
+	# 			},
+	# 			fields=[{"SUM": "amount", "as": "total_amount"}],
+	# 		)[0].total_amount
+	# 		or 0.0
+	# 	)
 	def get_income_form_other_sources(self):
 		return (
 			frappe.get_all(
@@ -2140,6 +2154,7 @@ class SalarySlip(TransactionBase):
 					"docstatus": 1,
 				},
 				fields=[{"SUM": "amount", "as": "total_amount"}],
+				order_by="",         
 			)[0].total_amount
 			or 0.0
 		)

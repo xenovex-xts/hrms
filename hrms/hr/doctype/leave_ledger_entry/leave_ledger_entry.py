@@ -112,19 +112,35 @@ def get_previous_expiry_ledger_entry(ledger):
 		fieldname=["creation"],
 	)
 
-	creation_date = creation_date.strftime(DATE_FORMAT) if creation_date else ""
+	# creation_date = creation_date.strftime(DATE_FORMAT) if creation_date else ""
+
+	# return frappe.db.get_value(
+	# 	"Leave Ledger Entry",
+	# 	filters={
+	# 		"creation": ("like", creation_date + "%"),
+	# 		"employee": ledger.employee,
+	# 		"leave_type": ledger.leave_type,
+	# 		"is_expired": 1,
+	# 		"docstatus": 1,
+	# 		"is_carry_forward": 0,
+	# 	},
+	# 	fieldname=["name"],
+	# )
+
+	if not creation_date:
+		return None
 
 	return frappe.db.get_value(
 		"Leave Ledger Entry",
 		filters={
-			"creation": ("like", creation_date + "%"),
+			"creation": creation_date,
 			"employee": ledger.employee,
 			"leave_type": ledger.leave_type,
 			"is_expired": 1,
 			"docstatus": 1,
 			"is_carry_forward": 0,
 		},
-		fieldname=["name"],
+		fieldname="name",
 	)
 
 

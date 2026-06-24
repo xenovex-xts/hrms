@@ -409,7 +409,8 @@ def get_salary_component(
 		.on(sca.parent == sc.name)
 		.select(sc.name, sca.account, sca.company)
 		.where(
-			(sc.type == filters.get("component_type"))
+			# (sc.type == filters.get("component_type"))
+			(sc.type == (filters.get("component_type") or "").title())
 			& (sc.disabled == 0)
 			& (sc[searchfield].like(f"%{txt}%") | sc.name.like(f"%{txt}%"))
 		)

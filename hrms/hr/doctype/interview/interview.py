@@ -423,23 +423,44 @@ def get_events(start: str, end: str, filters: str | None = None):
 	conditions = get_event_conditions("Interview", filters)
 
 	# nosemgrep: frappe-semgrep-rules.rules.frappe-using-db-sql
+	# interviews = frappe.db.sql(
+	# 	f"""
+	# 		SELECT DISTINCT
+	# 			`tabInterview`.name, `tabInterview`.job_applicant, `tabInterview`.interview_type,
+	# 			`tabInterview`.scheduled_on, `tabInterview`.status, `tabInterview`.from_time as from_time,
+	# 			`tabInterview`.to_time as to_time
+	# 		from
+	# 			`tabInterview`
+	# 		where
+	# 			(`tabInterview`.scheduled_on between %(start)s and %(end)s)
+	# 			and docstatus != 2
+	# 			{conditions}
+	# 		""",
+	# 	{"start": start, "end": end},
+	# 	as_dict=True,
+	# 	update={"allDay": 0},
+	# )
+
 	interviews = frappe.db.sql(
 		f"""
 			SELECT DISTINCT
-				`tabInterview`.name, `tabInterview`.job_applicant, `tabInterview`.interview_type,
-				`tabInterview`.scheduled_on, `tabInterview`.status, `tabInterview`.from_time as from_time,
-				`tabInterview`.to_time as to_time
-			from
-				`tabInterview`
-			where
-				(`tabInterview`.scheduled_on between %(start)s and %(end)s)
-				and docstatus != 2
+				name,
+				job_applicant,
+				interview_type,
+				scheduled_on,
+				status,
+				from_time,
+				to_time
+			FROM tabInterview
+			WHERE
+				scheduled_on BETWEEN %(start)s AND %(end)s
+				AND docstatus != 2
 				{conditions}
 			""",
 		{"start": start, "end": end},
 		as_dict=True,
 		update={"allDay": 0},
-	)
+	)	
 
 	for d in interviews:
 		subject_data = []
