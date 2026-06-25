@@ -69,13 +69,26 @@ def get_approvers(doctype: str, txt: str, searchfield: str, start: int, page_len
 		field_name = "Shift Request Approver"
 	if department_list:
 		for d in department_list:
+			# approvers += frappe.db.sql(
+			# 	"""select user.name, user.first_name, user.last_name from
+			# 	tabUser user, `tabDepartment Approver` approver where
+			# 	approver.parent = %s
+			# 	and user.name like %s
+			# 	and approver.parentfield = %s
+			# 	and approver.approver=user.name""",
+			# 	(d, "%" + txt + "%", parentfield),
+			# 	as_list=True,
+			# )
 			approvers += frappe.db.sql(
-				"""select user.name, user.first_name, user.last_name from
-				tabUser user, `tabDepartment Approver` approver where
-				approver.parent = %s
-				and user.name like %s
-				and approver.parentfield = %s
-				and approver.approver=user.name""",
+				"""
+				SELECT u.name, u.first_name, u.last_name
+				FROM "tabUser" u
+				INNER JOIN "tabDepartment Approver" approver
+					ON approver.approver = u.name
+				WHERE approver.parent = %s
+					AND u.name LIKE %s
+					AND approver.parentfield = %s
+				""",
 				(d, "%" + txt + "%", parentfield),
 				as_list=True,
 			)

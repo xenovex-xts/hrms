@@ -217,9 +217,16 @@ def get_dates_in_period(filters: Filters) -> list[str]:
 	if filters.filter_based_on == "Month":
 		total_days = get_total_days_in_month(filters)
 		# forms the datelist from selected year and month from filters
+		# dates_in_period = [
+		# 	f"{cstr(filters.year)}-{cstr(filters.month)}-{cstr(day)}" for day in range(1, total_days + 1)
+		# ]
+		year = cint(filters.year)
+		month = cint(filters.month)
+
 		dates_in_period = [
-			f"{cstr(filters.year)}-{cstr(filters.month)}-{cstr(day)}" for day in range(1, total_days + 1)
-		]
+			f"{year}-{month:02d}-{day:02d}"
+			for day in range(1, total_days + 1)
+		]		
 	if filters.filter_based_on == "Date Range":
 		dates_in_period = get_date_range(filters.start_date, filters.end_date)
 
@@ -232,7 +239,11 @@ def get_total_days_in_month(filters: Filters) -> int:
 
 def get_date_condition(docfield: Field, filters: Filters) -> Criterion:
 	if filters.filter_based_on == "Month":
-		return (Extract("month", docfield) == filters.month) & (Extract("year", docfield) == filters.year)
+		# return (Extract("month", docfield) == filters.month) & (Extract("year", docfield) == filters.year)
+		return (
+			(Extract("month", docfield) == cint(filters.month))
+			& (Extract("year", docfield) == cint(filters.year))
+		)
 	if filters.filter_based_on == "Date Range":
 		return (docfield >= filters.start_date) & (docfield <= filters.end_date)
 
@@ -495,8 +506,15 @@ def get_date_range_from_filters(filters: Filters) -> tuple:
 	"""Returns (start_date, end_date) as date objects from filters."""
 	if filters.filter_based_on == "Month":
 		total_days = get_total_days_in_month(filters)
-		start_date = getdate(f"{cstr(filters.year)}-{cstr(filters.month)}-01")
-		end_date = getdate(f"{cstr(filters.year)}-{cstr(filters.month)}-{total_days}")
+		# start_date = getdate(f"{cstr(filters.year)}-{cstr(filters.month)}-01")
+		# end_date = getdate(f"{cstr(filters.year)}-{cstr(filters.month)}-{total_days}")
+
+		year = cint(filters.year)
+		month = cint(filters.month)
+
+		start_date = getdate(f"{year}-{month:02d}-01")
+		end_date = getdate(f"{year}-{month:02d}-{total_days:02d}")
+
 		return start_date, end_date
 	return getdate(filters.start_date), getdate(filters.end_date)
 
@@ -752,7 +770,8 @@ def get_attendance_years() -> str:
 	else:
 		year_list = [frappe._dict({"year": getdate().year})]
 
-	return "\n".join(cstr(entry.year) for entry in year_list)
+	# return "\n".join(cstr(entry.year) for entry in year_list)
+	return "\n".join(str(int(entry.year)) for entry in year_list)
 
 
 def get_chart_data(attendance_map: dict, filters: Filters) -> dict:
