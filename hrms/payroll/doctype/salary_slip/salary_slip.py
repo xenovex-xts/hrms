@@ -842,6 +842,28 @@ class SalarySlip(TransactionBase):
 				)
 			)
 
+		print("=" * 80)
+		print("employee      :", self.employee)
+		print("salary_struct :", self.salary_structure)
+		print("actual_start  :", self.actual_start_date)
+		print("docstatus     :", 1)
+		print("=" * 80)
+
+		print(
+			frappe.get_all(
+				"Salary Structure Assignment",
+				filters={"employee": self.employee},
+				fields=[
+					"name",
+					"employee",
+					"salary_structure",
+					"from_date",
+					"company",
+					"docstatus",
+				],
+			)
+		)	
+
 	def calculate_net_pay(self, skip_tax_breakup_computation: bool = False):
 		def set_gross_pay_and_base_gross_pay():
 			self.gross_pay = self.get_component_totals("earnings", depends_on_payment_days=1)
@@ -2304,6 +2326,17 @@ class SalarySlip(TransactionBase):
 		year_to_date = 0
 		period_start_date, period_end_date = self.get_year_to_date_period()
 
+		# salary_slip_sum = frappe.get_list(
+		# 	"Salary Slip",
+		# 	fields=[{"SUM": "net_pay", "as": "net_sum"}, {"SUM": "gross_pay", "as": "gross_sum"}],
+		# 	filters={
+		# 		"employee": self.employee,
+		# 		"start_date": [">=", period_start_date],
+		# 		"end_date": ["<", period_end_date],
+		# 		"name": ["!=", self.name],
+		# 		"docstatus": 1,
+		# 	},
+		# )
 		salary_slip_sum = frappe.get_list(
 			"Salary Slip",
 			fields=[{"SUM": "net_pay", "as": "net_sum"}, {"SUM": "gross_pay", "as": "gross_sum"}],
@@ -2314,6 +2347,7 @@ class SalarySlip(TransactionBase):
 				"name": ["!=", self.name],
 				"docstatus": 1,
 			},
+			order_by="",
 		)
 
 		year_to_date = flt(salary_slip_sum[0].net_sum) if salary_slip_sum else 0.0
@@ -2327,6 +2361,17 @@ class SalarySlip(TransactionBase):
 	def compute_month_to_date(self):
 		month_to_date = 0
 		first_day_of_the_month = get_first_day(self.start_date)
+		# salary_slip_sum = frappe.get_list(
+		# 	"Salary Slip",
+		# 	fields=[{"SUM": "net_pay", "as": "sum"}],
+		# 	filters={
+		# 		"employee": self.employee,
+		# 		"start_date": [">=", first_day_of_the_month],
+		# 		"end_date": ["<", self.start_date],
+		# 		"name": ["!=", self.name],
+		# 		"docstatus": 1,
+		# 	},
+		# )
 		salary_slip_sum = frappe.get_list(
 			"Salary Slip",
 			fields=[{"SUM": "net_pay", "as": "sum"}],
@@ -2337,7 +2382,8 @@ class SalarySlip(TransactionBase):
 				"name": ["!=", self.name],
 				"docstatus": 1,
 			},
-		)
+			order_by="",
+		)		
 
 		month_to_date = flt(salary_slip_sum[0].sum) if salary_slip_sum else 0.0
 
