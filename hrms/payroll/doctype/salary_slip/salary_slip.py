@@ -2178,7 +2178,10 @@ class SalarySlip(TransactionBase):
 					"docstatus": 1,
 				},
 				fields=[{"SUM": "amount", "as": "total_amount"}],
+<<<<<<< HEAD
 				order_by="",         
+=======
+>>>>>>> upstream/version-16
 			)[0].total_amount
 			or 0.0
 		)

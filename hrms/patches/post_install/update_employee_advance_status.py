@@ -14,7 +14,6 @@
 # 			& (advance.status == "Paid")
 # 		)
 # 	).run()
-
 # 	(
 # 		frappe.qb.update(advance)
 # 		.set(advance.status, "Partly Claimed and Returned")
@@ -36,7 +35,6 @@ def execute():
 	frappe.reload_doc("hr", "doctype", "employee_advance")
 
 	advance = frappe.qb.DocType("Employee Advance")
-
 	(
 		frappe.qb.update(advance)
 		.set(advance.status, "Returned")

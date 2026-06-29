@@ -217,6 +217,7 @@ def get_chart_data(data):
 def get_attendance_with_checkins(filters):
 	attendance = frappe.qb.DocType("Attendance")
 	checkin = frappe.qb.DocType("Employee Checkin")
+
 	shift_type = frappe.qb.DocType("Shift Type")
 
 	query = (
