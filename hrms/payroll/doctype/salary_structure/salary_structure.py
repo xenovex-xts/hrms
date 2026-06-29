@@ -409,12 +409,8 @@ def get_salary_component(
 		.on(sca.parent == sc.name)
 		.select(sc.name, sca.account, sca.company)
 		.where(
-<<<<<<< HEAD
 			# (sc.type == filters.get("component_type"))
 			(sc.type == (filters.get("component_type") or "").title())
-=======
-			(sc.type == filters.get("component_type"))
->>>>>>> upstream/version-16
 			& (sc.disabled == 0)
 			& (sc[searchfield].like(f"%{txt}%") | sc.name.like(f"%{txt}%"))
 		)

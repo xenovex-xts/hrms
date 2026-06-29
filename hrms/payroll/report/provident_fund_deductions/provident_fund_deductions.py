@@ -193,4 +193,5 @@ def get_years() -> str:
 	if not year_list:
 		year_list = [getdate().year]
 
-	return "\n".join(str(year) for year in year_list)
+	# return "\n".join(str(year) for year in year_list)
+	return "\n".join(str(int(year)) for year in year_list)

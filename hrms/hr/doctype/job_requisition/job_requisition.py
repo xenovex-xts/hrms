@@ -82,10 +82,17 @@ def get_avg_time_to_fill(
 	if designation:
 		filters["designation"] = designation
 
+	# avg_time_to_fill = frappe.db.get_list(
+	# 	"Job Requisition",
+	# 	filters=filters,
+	# 	fields=[{"AVG": "time_to_fill", "as": "average_time"}],
+	# )[0].average_time
+
 	avg_time_to_fill = frappe.db.get_list(
 		"Job Requisition",
 		filters=filters,
 		fields=[{"AVG": "time_to_fill", "as": "average_time"}],
-	)[0].average_time
+		order_by=None,
+	)[0].average_time	
 
 	return format_duration(avg_time_to_fill) if avg_time_to_fill else 0

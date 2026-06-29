@@ -5,11 +5,7 @@
 import frappe
 from frappe import _
 from frappe.utils import flt
-<<<<<<< HEAD
 from frappe.query_builder.functions import Sum
-=======
-
->>>>>>> upstream/version-16
 from erpnext.accounts.report.financial_statements import get_period_list
 
 
@@ -68,7 +64,6 @@ def get_vehicle_log_data(filters):
 	conditions, values = get_conditions(filters)
 
 	# nosemgrep: frappe-semgrep-rules.rules.frappe-using-db-sql
-<<<<<<< HEAD
 	# data = frappe.db.sql(
 	# 	f"""
 	# 	SELECT
@@ -123,28 +118,6 @@ def get_vehicle_log_data(filters):
 
 	data = query.orderby(VehicleLog.date).run(as_dict=True)	
 
-=======
-	data = frappe.db.sql(
-		f"""
-		SELECT
-			vhcl.license_plate as vehicle, vhcl.make, vhcl.model,
-			vhcl.location, log.name as log_name, log.odometer,
-			log.date, log.employee, log.fuel_qty,
-			log.price as fuel_price,
-			log.fuel_qty * log.price as fuel_expense
-		FROM
-			`tabVehicle` vhcl,`tabVehicle Log` log
-		WHERE
-			vhcl.license_plate = log.license_plate
-			and log.docstatus = 1
-			and date between %(start_date)s and %(end_date)s
-			{conditions}
-		ORDER BY date""",
-		values,
-		as_dict=1,
-	)
-
->>>>>>> upstream/version-16
 	for row in data:
 		row["service_expense"] = get_service_expense(row.log_name)
 
@@ -179,7 +152,6 @@ def get_period_dates(filters):
 
 
 def get_service_expense(logname):
-<<<<<<< HEAD
 	# expense_amount = frappe.db.sql(
 	# 	"""
 	# 	SELECT sum(expense_amount)
@@ -202,20 +174,6 @@ def get_service_expense(logname):
 	).run()
 
 	return flt(result[0][0]) if result and result[0][0] else 0.0	
-=======
-	expense_amount = frappe.db.sql(
-		"""
-		SELECT sum(expense_amount)
-		FROM
-			`tabVehicle Log` log, `tabVehicle Service` service
-		WHERE
-			service.parent=log.name and log.name=%s
-	""",
-		logname,
-	)
-
-	return flt(expense_amount[0][0]) if expense_amount else 0.0
->>>>>>> upstream/version-16
 
 
 def get_chart_data(data, filters):
