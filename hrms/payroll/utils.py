@@ -3,7 +3,15 @@ from datetime import date
 
 import frappe
 from frappe import _
-from frappe.utils import ceil, floor, get_first_day, get_last_day, get_link_to_form, getdate, rounded
+from frappe.utils import (
+	ceil,
+	floor,
+	get_first_day,
+	get_last_day,
+	get_link_to_form,
+	getdate,
+	rounded,
+)
 
 
 def sanitize_expression(string: str | None = None) -> str | None:
@@ -19,7 +27,6 @@ def sanitize_expression(string: str | None = None) -> str | None:
 	Example:
 	    expression = "\r\n    gross_pay > 10000\n    "
 	    sanitized_expr = sanitize_expression(expression)
-
 	"""
 
 	if not string:
@@ -53,12 +60,21 @@ def get_component_abbr_map() -> dict:
 	so any component abbreviation referenced in a formula resolves (default 0).
 
 	Cache key matches salary_slip.SALARY_COMPONENT_VALUES (shared entry, invalidated
-	on Salary Component save)."""
+	on Salary Component save).
+	"""
 
 	def _fetch_component_values():
-		return {abbr: 0 for abbr in frappe.get_all("Salary Component", pluck="salary_component_abbr")}
+		return {
+			abbr: 0
+			for abbr in frappe.get_all(
+				"Salary Component", pluck="salary_component_abbr"
+			)
+		}
 
-	return frappe.cache().get_value("salary_component_values", generator=_fetch_component_values)
+	return frappe.cache().get_value(
+		"salary_component_values",
+		generator=_fetch_component_values,
+	)
 
 
 SALARY_SLIP_EVAL_DEFAULTS = {
@@ -93,6 +109,7 @@ def get_component_eval_context(employee: str, ssa_as_dict: dict) -> frappe._dict
 	(base, variable, ...) and employee fields so that formulas can reference any
 	of them by name.
 	"""
+
 	data = frappe._dict()
 	data.update(get_component_abbr_map())
 	data.update(SALARY_SLIP_EVAL_DEFAULTS)
@@ -110,37 +127,52 @@ def _check_attributes(code: str) -> None:
 
 	for attribute in unsafe_attrs:
 		if attribute in code:
-			raise SyntaxError(f'Illegal rule {frappe.bold(code)}. Cannot use "{attribute}"')
+			raise SyntaxError(
+				f'Illegal rule {frappe.bold(code)}. Cannot use "{attribute}"'
+			)
 
 	BLOCKED_NODES = (ast.NamedExpr,)
 
 	tree = ast.parse(code, mode="eval")
 	for node in ast.walk(tree):
 		if isinstance(node, BLOCKED_NODES):
-			raise SyntaxError(f"Operation not allowed: line {node.lineno} column {node.col_offset}")
-		if isinstance(node, ast.Attribute) and isinstance(node.attr, str) and node.attr in UNSAFE_ATTRIBUTES:
-			raise SyntaxError(f'Illegal rule {frappe.bold(code)}. Cannot use "{node.attr}"')
+			raise SyntaxError(
+				f"Operation not allowed: line {node.lineno} column {node.col_offset}"
+			)
+		if (
+			isinstance(node, ast.Attribute)
+			and isinstance(node.attr, str)
+			and node.attr in UNSAFE_ATTRIBUTES
+		):
+			raise SyntaxError(
+				f'Illegal rule {frappe.bold(code)}. Cannot use "{node.attr}"'
+			)
 
 
-def _safe_eval(code: str, eval_globals: dict | None = None, eval_locals: dict | None = None):
-	"""Safe eval for **trusted** salary component conditions and formulas only.
+def _safe_eval(
+	code: str,
+	eval_globals: dict | None = None,
+	eval_locals: dict | None = None,
+):
+	"""Safe eval for trusted salary component conditions and formulas only."""
 
-	Uses AST-based attribute checking instead of frappe.safe_eval to avoid
-	recursion limit issues with the large/deeply-nested formulas some countries'
-	payroll needs. It is a lighter (denylist-based) sandbox than frappe.safe_eval,
-	so it is safe only for admin-authored salary-structure formulas, not arbitrary
-	or end-user input. For anything else, use frappe.safe_eval.
-	"""
 	code = unicodedata.normalize("NFKC", code)
 
 	_check_attributes(code)
 
-	whitelisted_globals = {"int": int, "float": float, "long": int, "round": round}
+	whitelisted_globals = {
+		"int": int,
+		"float": float,
+		"long": int,
+		"round": round,
+	}
+
 	if not eval_globals:
 		eval_globals = {}
 
 	eval_globals["__builtins__"] = {}
 	eval_globals.update(whitelisted_globals)
+
 	return eval(code, eval_globals, eval_locals)  # nosemgrep
 
 
@@ -158,7 +190,9 @@ def throw_error_message(row, error, title, description=None):
 	)
 
 	message = _(
-		"Error while evaluating the {doctype} {doclink} at row {row_id}. <br><br> <b>Error:</b> {error} <br><br> <b>Hint:</b> {description}"
+		"Error while evaluating the {doctype} {doclink} at row {row_id}. "
+		"<br><br> <b>Error:</b> {error} "
+		"<br><br> <b>Hint:</b> {description}"
 	).format(**data)
 
 	frappe.throw(message, title=title)

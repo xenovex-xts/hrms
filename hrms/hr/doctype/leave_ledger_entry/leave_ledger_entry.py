@@ -112,12 +112,17 @@ def get_previous_expiry_ledger_entry(ledger):
 		fieldname=["creation"],
 	)
 
-	creation_date = creation_date.strftime(DATE_FORMAT) if creation_date else ""
+	if not creation_date:
+		return None
+
+	# Match by creation *date* portably: LIKE on a timestamp column fails on
+	# Postgres, so use a day range instead of a string prefix match.
+	day = getdate(creation_date)
 
 	return frappe.db.get_value(
 		"Leave Ledger Entry",
 		filters={
-			"creation": ("like", creation_date + "%"),
+			"creation": ["between", [f"{day} 00:00:00.000000", f"{day} 23:59:59.999999"]],
 			"employee": ledger.employee,
 			"leave_type": ledger.leave_type,
 			"is_expired": 1,

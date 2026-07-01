@@ -66,7 +66,7 @@ def update_job_applicant(status, job_applicant):
 def get_staffing_plan_detail(designation, company, offer_date):
 	detail = frappe.db.sql(
 		"""
-		SELECT DISTINCT spd.parent,
+		SELECT spd.parent,
 			sp.from_date as from_date,
 			sp.to_date as to_date,
 			sp.name,
@@ -79,6 +79,7 @@ def get_staffing_plan_detail(designation, company, offer_date):
 			AND sp.company=%s
 			AND spd.parent = sp.name
 			AND %s between sp.from_date and sp.to_date
+		GROUP BY spd.parent, sp.from_date, sp.to_date, sp.name, spd.designation
 	""",
 		(designation, company, offer_date),
 		as_dict=1,

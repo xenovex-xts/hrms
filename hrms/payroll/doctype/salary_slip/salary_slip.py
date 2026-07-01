@@ -2302,6 +2302,7 @@ class SalarySlip(TransactionBase):
 				"name": ["!=", self.name],
 				"docstatus": 1,
 			},
+			order_by="",
 		)
 
 		year_to_date = flt(salary_slip_sum[0].net_sum) if salary_slip_sum else 0.0
@@ -2325,6 +2326,7 @@ class SalarySlip(TransactionBase):
 				"name": ["!=", self.name],
 				"docstatus": 1,
 			},
+			order_by="",
 		)
 
 		month_to_date = flt(salary_slip_sum[0].sum) if salary_slip_sum else 0.0

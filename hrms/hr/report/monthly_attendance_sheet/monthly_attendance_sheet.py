@@ -232,7 +232,9 @@ def get_total_days_in_month(filters: Filters) -> int:
 
 def get_date_condition(docfield: Field, filters: Filters) -> Criterion:
 	if filters.filter_based_on == "Month":
-		return (Extract("month", docfield) == filters.month) & (Extract("year", docfield) == filters.year)
+		return (Extract("month", docfield) == cint(filters.month)) & (
+			Extract("year", docfield) == cint(filters.year)
+		)
 	if filters.filter_based_on == "Date Range":
 		return (docfield >= filters.start_date) & (docfield <= filters.end_date)
 

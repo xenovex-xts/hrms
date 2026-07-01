@@ -49,7 +49,7 @@ class PayrollEntry(Document):
 			return
 
 		# check if salary slips were manually submitted
-		entries = frappe.db.count("Salary Slip", {"payroll_entry": self.name, "docstatus": 1})
+		entries = frappe.db.count("Salary Slip", {"payroll_entry": self.name, "docstatus": 1}, ["name"])
 		if cint(entries) == len(self.employees):
 			self.set_onload("submitted_ss", True)
 

@@ -4,8 +4,9 @@
 from collections import OrderedDict
 
 import frappe
-from frappe import _, msgprint, scrub
+from frappe import _, msgprint
 from frappe.query_builder import Order
+from frappe.utils import scrub
 
 
 def execute(filters=None):

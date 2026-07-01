@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 import frappe
 from frappe import _
@@ -656,6 +656,23 @@ def get_shift_type(shift_type_name: str) -> dict:
 def get_shift_timings(shift_type: dict, for_timestamp: datetime) -> tuple:
 	start_time = shift_type.start_time
 	end_time = shift_type.end_time
+
+	# Time fields are returned as timedelta on MariaDB but as datetime.time on
+	# Postgres; normalise to timedelta so the datetime arithmetic below is portable.
+	if isinstance(start_time, time):
+		start_time = timedelta(
+			hours=start_time.hour,
+			minutes=start_time.minute,
+			seconds=start_time.second,
+			microseconds=start_time.microsecond,
+		)
+	if isinstance(end_time, time):
+		end_time = timedelta(
+			hours=end_time.hour,
+			minutes=end_time.minute,
+			seconds=end_time.second,
+			microseconds=end_time.microsecond,
+		)
 
 	shift_actual_start = get_time(
 		datetime.combine(for_timestamp, datetime.min.time())
