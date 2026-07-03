@@ -438,7 +438,6 @@ class IncomeTaxComputationReport:
 						"docstatus": 1,
 					},
 					fields=[{"SUM": "amount", "as": "total_amount"}],
-					order_by="",
 				)[0].total_amount
 				or 0.0
 			)
