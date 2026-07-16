@@ -2143,6 +2143,7 @@ class SalarySlip(TransactionBase):
 					"docstatus": 1,
 				},
 				fields=[{"SUM": "amount", "as": "total_amount"}],
+				order_by=None,
 			)[0].total_amount
 			or 0.0
 		)

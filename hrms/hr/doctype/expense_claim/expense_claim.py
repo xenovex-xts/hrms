@@ -548,32 +548,59 @@ def update_reimbursed_amount(doc):
 	doc.set_status(update=True)
 
 
+# def get_total_reimbursed_amount(doc):
+# 	if doc.is_paid:
+# 		# No need to check for cancelled state here as it will anyways update status as cancelled
+# 		return doc.grand_total
+# 	else:
+# 		JournalEntryAccount = frappe.qb.DocType("Journal Entry Account")
+# 		amount_via_jv = frappe.db.get_value(
+# 			"Journal Entry Account",
+# 			{"reference_name": doc.name, "docstatus": 1},
+# 			Sum(
+# 				JournalEntryAccount.debit_in_account_currency - JournalEntryAccount.credit_in_account_currency
+# 			),
+# 		)
+
+# 		amount_via_payment_entry = frappe.db.get_value(
+# 			"Payment Entry Reference",
+# 			{
+# 				"reference_name": doc.name,
+# 				"advance_voucher_type": None,
+# 				"docstatus": 1,
+# 			},
+# 			[{"SUM": "allocated_amount"}],
+# 		)
+
+# 		return flt(amount_via_jv) + flt(amount_via_payment_entry)
 def get_total_reimbursed_amount(doc):
-	if doc.is_paid:
-		# No need to check for cancelled state here as it will anyways update status as cancelled
-		return doc.grand_total
-	else:
-		JournalEntryAccount = frappe.qb.DocType("Journal Entry Account")
-		amount_via_jv = frappe.db.get_value(
-			"Journal Entry Account",
-			{"reference_name": doc.name, "docstatus": 1},
-			Sum(
-				JournalEntryAccount.debit_in_account_currency - JournalEntryAccount.credit_in_account_currency
-			),
-		)
+    if doc.is_paid:
+        return doc.grand_total
 
-		amount_via_payment_entry = frappe.db.get_value(
-			"Payment Entry Reference",
-			{
-				"reference_name": doc.name,
-				"advance_voucher_type": None,
-				"docstatus": 1,
-			},
-			[{"SUM": "allocated_amount"}],
-		)
+    JournalEntryAccount = frappe.qb.DocType("Journal Entry Account")
+    PaymentEntryReference = frappe.qb.DocType("Payment Entry Reference")
 
-		return flt(amount_via_jv) + flt(amount_via_payment_entry)
+    amount_via_jv = (
+        frappe.qb.from_(JournalEntryAccount)
+        .select(
+            Sum(
+                JournalEntryAccount.debit_in_account_currency
+                - JournalEntryAccount.credit_in_account_currency
+            )
+        )
+        .where(JournalEntryAccount.reference_name == doc.name)
+        .where(JournalEntryAccount.docstatus == 1)
+    ).run()[0][0] or 0
 
+    amount_via_payment_entry = (
+        frappe.qb.from_(PaymentEntryReference)
+        .select(Sum(PaymentEntryReference.allocated_amount))
+        .where(PaymentEntryReference.reference_name == doc.name)
+        .where(PaymentEntryReference.advance_voucher_type.isnull())
+        .where(PaymentEntryReference.docstatus == 1)
+    ).run()[0][0] or 0
+
+    return flt(amount_via_jv) + flt(amount_via_payment_entry)
 
 def get_outstanding_amount_for_claim(claim):
 	precision = frappe.get_precision("Expense Claim", "grand_total")

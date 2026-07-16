@@ -750,6 +750,9 @@ def get_attendance_years() -> str:
 	).run(as_dict=True)
 
 	if year_list:
+		for row in year_list:
+			row.year = cint(row.year)
+
 		year_list.sort(key=lambda d: d.year, reverse=True)
 	else:
 		year_list = [frappe._dict({"year": getdate().year})]
